@@ -1,0 +1,28 @@
+Issue using Unreal googlevr-branch4.14.3 with Wwise 2016.2.1.5995.317 to package a daydream application for a google pixel phone.
+
+Following the existing documentation https://developers.google.com/vr/audio/wwise-getting-started for the part 2
+_____________
+Add the GVR audio plugin static runtime libraries to your project and rebuild the integration code to finalize the registration.
+
+#include <AK/Plugin/GvrAudioFXFactory.h> into AkAudioDevice.cpp
+Add AddWwiseLib(Target, "GvrAudioFX"); to AkAudio.Build.cs
+Rebuild the project to register the plugin.
+___________________
+The issue is that only android-9_armeabi-v7a is available by default leading to this error during the packaging for a build targeting a google pixel phone using daydream.
+[2017.03.05-00.48.25:593][ 19]UATHelper: Packaging (Android (All)): UnrealBuildTool: C:/NVPACK/android-ndk-r12b/toolchains/aarch64-linux-android-4.9/prebuilt/windows-x86_64/lib/gcc/aarch64-linux-android/4.9.x/../../../../aarch64-linux-android/bin\ld: skipping incompatible F:/UEbuild/UnrealEngine-4.14-googlevr/Engine/Plugins/Wwise/ThirdParty/android-9_armeabi-v7a/Release/lib\libAkSoundEngine.a when searching for -lAkSoundEngine
+[2017.03.05-00.48.25:593][ 19]UATHelper: Packaging (Android (All)): UnrealBuildTool: C:/NVPACK/android-ndk-r12b/toolchains/aarch64-linux-android-4.9/prebuilt/windows-x86_64/lib/gcc/aarch64-linux-android/4.9.x/../../../../aarch64-linux-android/bin\ld: cannot find -lAkSoundEngine
+
+________
+So an extra fix is required. It can be fix by editing the file Engine/Plugins/Wwise/Source/AkAudio/AkAudio.Build.cs
+and to replace android-9_armeabi-v7a by akPlatformLibDir = "android-21_arm64-v8a";
+
+      else if (Target.Platform == UnrealTargetPlatform.Android)
+        {
+            akPlatformLibDir = "android-21_arm64-v8a";
+            PublicIncludePaths.Add(Path.Combine(samplesSoundEngineBasePath, "Android"));
+            PublicIncludePaths.Add(Path.Combine(samplesSoundEngineBasePath, "POSIX"));
+            Definitions.Add("__ANDROID__");
+        }
+        
+Also, no SDK version target Ice Cream Sandwich (14).
+
